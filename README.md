@@ -1,4 +1,4 @@
-CanterlotUnderground
+README
 ====================
 
 The JavaScript extension for CanterlotUnderground.net
