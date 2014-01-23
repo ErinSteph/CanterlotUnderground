@@ -739,6 +739,7 @@
 			$.setVal('DEsetDeskNotes', '0');
 			$.setVal('DEsetDespoilerImgs', '0');
 			$.setVal('DEsetDespoilerTxt', '0');
+			$.setVal('DEsetHighOwn', '1');
 			$.setVal('DEsetImageHovs', '1');
 			$.setVal('DEsetMinNav', '0');
 			$.setVal('DEsetQR', '1');
@@ -948,8 +949,27 @@
 			$.att(this, 'style', 'height:37px;overflow:visible;');
 		}, false);
 		$n.addEventListener('mouseleave', function(){
-			$.att(this, 'style', 'height:5px;overflow:hidden;');
+			var av = false;
+			$n.addEventListener('mouseover', function(){
+				av = true;
+			}, false);
+			$.time(1000, function(){
+				if(av == false){
+					$.att($n, 'style', 'height:5px;overflow:hidden;');
+				}
+			}, false);
 		}, false);
+	}
+	
+//Highlight owner's posts
+	function highOwn(){
+		var $posts = $$('.reply');
+		$.each($posts, function($post, i){
+			var $num = $post.id.split('reply')[1];
+			if($.getVal('CU_OWNER_'+$board+'_'+$num) == 'true'){
+				$.att($post, 'style', 'border-left:3px solid;border-left-color:orange;');
+			}			
+		});
 	}
 	
 //create QR
@@ -1199,7 +1219,7 @@
 								if($('#qrFile').value == ''){
 									$('#qrClearFile').style.display = 'none';
 								}
-								winNote('Post Failed - ' + postIsError(xhr.responseText), 'red', 5);
+								winNote('Post Failed - ' + postIsError(xhr.responseText), 'red', 3);
 								return dNotify('CanterlotUnderground/' + $board + '/: Post Failed - ' + postIsError(xhr.responseText));
 							}else{
 								$('#qrClearFile').style.display = 'none';
@@ -1211,6 +1231,7 @@
 									return location.reload(); 
 								}else{
 									$.setVal('CU_OWNER_'+$board+'_'+xhr.responseText.split('<last post="')[1].split('"')[0], 'true');
+									winNote('Post Successful', 'green', 5);
 									$.event('QR_Post', { detail: { board: $board, thread: $thread, post: xhr.responseText.split('<last post="')[1].split('"')[0] } });
 									return false;
 								}								
@@ -1348,9 +1369,10 @@
 		menuCheckBox('setDeskNotes', getNotPerm, 'Desktop Notifications');
 		menuCheckBox('setDespoilerImgs', despoilerImgs, 'Despoiler Thumbs');
 		menuCheckBox('setDespoilerTxt', despoilerTxt, 'Despoiler Text');
+		menuCheckBox('setHighOwn', highOwn, 'Mark Own Posts');
 		menuCheckBox('setImageHovs', hovers, 'Image Hover Expansion');
 		menuCheckBox('setMinNav', navHTog, 'Minimise Navigation');
-		menuCheckBox('setQR', qrInit, 'Quick Reply');	
+		menuCheckBox('setQR', qrInit, 'Quick Reply');
 		
 		//create menu links like menuButtonLink('Link Text', function(){ alert('link was clicked'); });
 		//menuButtonLink('Link', function(){ alert('link was clicked'); });
