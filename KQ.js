@@ -4,9 +4,7 @@
 		document.body.innerHTML = 'GET <a href="http://www.mozilla.org/en-US/firefox/new/" target="_blank">FIREFOX</a> YOU FUCKING CRETIN<br>we are not supporting your shitty microshill browser, cunt.';
 		return false;
 	}
- 
- /* <!--KQute--> */
- 
+
     var d, db, h, $, $$;
      
     d = document;
@@ -194,10 +192,7 @@
 			}
 		}
 	}
-           
-    /* <!--/KQute--> */
 	
-	/* init X */
  function initX() {
     var spoilerspan = document.getElementsByTagName('span');
     for (var k=0;k<spoilerspan.length;k++){
@@ -706,8 +701,6 @@
         window.addEventListener('scroll', scroll, true);
       }
     }
-
-/* /init X */
 	
 //get some page info
 	var $board, $thread, $path;
@@ -826,6 +819,7 @@
 					}
 				}
 			}
+			
 		}
 		function $$despOP(){
 			f = $$('.thumb');
@@ -867,6 +861,26 @@
 	function despoilerTxt(){
 		$.css('.spoiler{background-color:#FFFFFF !important');
 	}
+	
+//re-arrange file info
+	function readableFiles(){
+		var f = $$('.filesize');
+		function rLn(x){
+			return x.outerHTML;
+		}
+		$.each(f, function(a, i){
+			var l = $$('a', a);
+			var inf = a.innerHTML.split('- (')[1].split(')')[0];
+			var fSize = inf.split(',')[0];
+			var fScale = inf.split(',')[1];
+			var fName = inf.split(',')[2];
+			fName = fName.substring(1, (fName.length-2));
+			l[0].innerHTML = fName;
+			var newInfo = 'File: ' + rLn(l[0]) + ' - ( ' + fSize + ', ' + fScale + ', ' + rLn(l[1]) + rLn(l[2]) + rLn(l[3]) + rLn(l[4]) + ' )';
+			a.innerHTML = newInfo;
+		});
+	}
+	d.addEventListener('extensionReady', function(){ readableFiles(); }, false);
 	
 //mark post's owners
 	function markPosts(){
@@ -913,9 +927,14 @@
 			$thumbs[i].addEventListener('mouseover', iHover, false);
 		}
 		function iHover(){
-			this.addEventListener('mouseleave', kHover, false);
-			cs = window.getComputedStyle($.att($('#imageHov'), 'src', this.href), null);
-			return $cs = parseFloat(cs.height.split('px')[0]);
+			if($('img', this).src.indexOf('s.') > 0 || $('img', this).title == 'SPOILER!' || $('img', this).src.indexOf('.gif') > -1){
+				cs = window.getComputedStyle($.att($('#imageHov'), 'src', this.href), null);
+				this.addEventListener('mouseleave', kHover, false);
+				this.addEventListener('click', kHover, false);
+				return $cs = parseFloat(cs.height.split('px')[0]);
+			}else{
+				return false;
+			}
 		}
 		function kHover(){
 			this.removeEventListener('mouseleave', kHover, false);
@@ -931,12 +950,18 @@
 			$thumbs[i].addEventListener('mouseover', iHover, false);
 		}
 		function iHover(){
-			this.addEventListener('mouseleave', kHover, false);
-			cs = window.getComputedStyle($.att($('#imageHov'), 'src', this.href), null);
-			return $cs = parseFloat(cs.height.split('px')[0]);
+			if($('img', this).src.indexOf('s.') > 0 || $('img', this).title == 'SPOILER!' || $('img', this).src.indexOf('.gif') > -1){
+				cs = window.getComputedStyle($.att($('#imageHov'), 'src', this.href), null);
+				this.addEventListener('mouseleave', kHover, false);
+				this.addEventListener('click', kHover, false);
+				return $cs = parseFloat(cs.height.split('px')[0]);
+			}else{
+				return false;
+			}
 		}
 		function kHover(){
 			this.removeEventListener('mouseleave', kHover, false);
+			this.removeEventListener('click', kHover, false);
 			return $('#imageHov').removeAttribute("src")
 		}
 	}
@@ -1334,6 +1359,15 @@
 		return false;
 	}
 	
+//execute functions if user has enabled them
+	function fireIfSet(v, f){
+		if($.getVal('DE'+v) == 1){
+			return f();
+		}else{
+			return false;
+		}
+	}
+	
 //a function to create menu settings links
 	function menuButtonLink(t, f){
 		$.htm($.att($.elm('li', null, $('#setUL')), 'style', 'cursor:pointer;'), '<a>'+t+'</a>').addEventListener('click', function(){ f(); }, false);
@@ -1393,7 +1427,9 @@
 	
 	d.addEventListener('newPosts', function(e){
 		if(e.detail.count > 1){var lpl = 's'}else{var lpl = '';}
-		$.time(500, function(){ 
+		$.time(500, function(){
+			fireIfSet('setHighOwn', function(){ highOwn(); });
+			readableFiles();
 			markPosts(); 	
 		}, false);
 		$.time(600, function(){
