@@ -1171,6 +1171,33 @@
 				$('#qrClearFile').style.display = 'none';
 			}
 		}, false);
+	
+		var $modForm = false;
+		
+		function modForm(){
+			$modForm = true;
+			$.htm($('#qrInp'), $.htm($('#qrInp')) + '\
+				<span id="qrModForm" style="color:#34345C;font-family:sans-serif;text-decoration:none;">\
+				<br><input type="text" id="qrModPass" style="width:297px;" placeholder="Mod Password"><br>&nbsp;Mod - \
+				<a title="Display">D</a>:<input type="checkbox" id="qrModDisplay"> / \
+				<a title="Lock">L</a>:<input type="checkbox" id="qrModLock"> / \
+				<a title="Sticky">S</a>:<input type="checkbox" id="qrModSticky"> / \
+				<a title="Raw HTML">RH</a>:<input type="checkbox" id="qrModRaw"> / \
+				<a title="Name">N</a>:<input type="checkbox" id="qrModName"> \
+				</span>\
+				');
+		}
+		if(getCookie("kumod") == "allboards"){
+			modForm();
+		}else if(getCookie("kumod") != ""){
+			var $modc = getCookie("kumod").split('|');
+			for(var bds in $modc){
+				if($modc[bds] == $board){
+					modForm();
+					break;
+				}
+			}
+		}
 		
 		function qrSubmit(){
 			var fi = 0;
@@ -1188,6 +1215,15 @@
 					formData.append("message", $.val($('#qrComField')));
 					formData.append("imagefile", $("#qrFile").files[ffi]);
 					formData.append("postpassword", $.val($('[accesskey="p"]')));
+					if($modForm == true){
+						formData.append("modpassword", $('#qrModPass').value);
+						if($('#qrModDisplay').checked == true){ formData.append("displaystaffstatus", $('#qrModDisplay').value); }
+						if($('#qrModLock').checked == true){ formData.append("lockonpost", $('#qrModLock').value); }
+						if($('#qrModSticky').checked == true){ formData.append("stickyonpost", $('#qrModSticky').value); }
+						if($('#qrModRaw').checked == true){ formData.append("rawhtml", $('#qrModRaw').value); }
+						if($('#qrModName').checked == true){ formData.append("usestaffname", $('#qrModName').value); }
+
+					}
 				var xhr = new XMLHttpRequest();
 				xhr.open("POST", "http://canterlotunderground.net/board.php");
 				
@@ -1276,7 +1312,7 @@
 							$('#qrComField').value = '';
 							$.event('input', null, $('#qrComField'));
 							if(postIsError(xhr.responseText) != false){
-								winNote('Post ' + fi + '/' + $("#qrFile").files.length + ' Failed - ' + postIsError(xhr.responseText), 'red', 2);
+								winNote('Post ' + fi + '/' + $("#qrFile").files.length + ' Failed - ' + postIsError(xhr.responseText), 'red', 4);
 								dNotify('CanterlotUnderground/' + $board + '/: Post ' + fi + '/' + $("#qrFile").files.length + ' Failed - ' + postIsError(xhr.responseText));
 							}else{
 								$.setVal('CU_OWNER_'+$board+'_'+xhr.responseText.split('<last post="')[1].split('"')[0], 'true');
