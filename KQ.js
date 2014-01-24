@@ -1,3 +1,6 @@
+ /* KQ.js - CanterlotUnderground.net javascript extension */
+ /* function initX() derivative work of James Campos, everything else team-kittens, no license.*/
+ 
  function initKQ(){ 
 
 	if(navigator.appName == "Microsoft Internet Explorer"){
@@ -869,15 +872,22 @@
 			return x.outerHTML;
 		}
 		$.each(f, function(a, i){
-			var l = $$('a', a);
-			var inf = a.innerHTML.split('- (')[1].split(')')[0];
-			var fSize = inf.split(',')[0];
-			var fScale = inf.split(',')[1];
-			var fName = inf.split(',')[2];
-			fName = fName.substring(1, (fName.length-2));
-			l[0].innerHTML = fName;
-			var newInfo = 'File: ' + rLn(l[0]) + ' - ( ' + fSize + ', ' + fScale + ', ' + rLn(l[1]) + rLn(l[2]) + rLn(l[3]) + rLn(l[4]) + ' )';
-			a.innerHTML = newInfo;
+			if($.att(a, 'parsed') != 'true'){
+				$.att(a, 'parsed', 'true');
+				var l = $$('a', a);
+				var inf = a.innerHTML.split('- (')[1].split(')')[0];
+				var fSize = inf.split(',')[0];
+				fSize = fSize.substring(0, (fSize.length-2))
+				var fScale = inf.split(',')[1];
+				fScale = fScale.substring(1, (fScale.length-2))
+				var fName = inf.split(',')[2];
+				fName = fName.substring(1, (fName.length-2));
+				l[0].innerHTML = fName;
+				var fLink = rLn(l[0]);
+				var fSauce = rLn(l[1]) + rLn(l[2]) + rLn(l[3]) + rLn(l[4]);
+				var newInfo = fLink + ' - (' + fSize + ', ' + fScale + ') - ' + fSauce;
+				a.innerHTML = newInfo;
+			}
 		});
 	}
 	d.addEventListener('extensionReady', function(){ readableFiles(); }, false);
@@ -1321,7 +1331,7 @@
 			var $$a = $$('a');
 			for(var i = 0;i < $$a.length;i++){
 				if($$a[i].parentNode.className == 'reflink'){
-					if($$a[i].href.split('.html#')[1].indexOf('i') == 0){
+					if($$a[i].href.split('#')[1].indexOf('i') == 0){
 						if(postQuotes[$$a[i].innerHTML] != 'set'){
 							$$a[i].addEventListener('click', function(e){
 								e.preventDefault();
@@ -1359,6 +1369,16 @@
 		return false;
 	}
 	
+//a function to create advanced menu settings checkboxes
+	function advancedMenuCheckBox(i, f, t){
+		$.htm($.elm('span', null, $('set')), '<input type="checkbox" id="adv-'+i+'" value="1"> '+t).addEventListener('change', function(){
+			if($('#adv-'+i).checked == true){ $.setVal('DE'+i, '1'); }else{ $.setVal('DE'+i, '0');}
+		}, false);
+		if($.getVal('DE'+i, 1) == 0){ $('#adv-'+i).checked = false; }else{ $('#adv-'+i).checked = true; }
+		if($('#adv-'+i).checked == true){ f(); }
+		return false;
+	}
+	
 //execute functions if user has enabled them
 	function fireIfSet(v, f){
 		if($.getVal('DE'+v) == 1){
@@ -1373,6 +1393,38 @@
 		$.htm($.att($.elm('li', null, $('#setUL')), 'style', 'cursor:pointer;'), '<a>'+t+'</a>').addEventListener('click', function(){ f(); }, false);
 		return false;
 	}
+	
+//create advanced menu
+
+	function createAdvancedMenu(){
+		var $menuCSS = $.css('\
+			.settingsAdvanced{\
+				width:300px;\
+				height:300px;\
+				position:fixed;\
+				left:50%;\
+				top:25%;\
+				margin-left:-150px;\
+				border:1px solid;\
+				text-align:center;\
+				background:#EEF2FF;\
+			}\
+		');
+		var $menu = {};
+		$menu['id'] = 'settingsAdvanced';
+		$menu['class'] = 'settingsAdvanced';
+		$menu['style'] = 'display:none;';
+		$menu = $.elm('div', $menu, db);
+		$.htm($menu, '\
+			<h2>Advanced Settings</h2>\
+			<set>\
+			</set>\
+			<button type="button" id="adv_Close">Close</button>\
+		');
+		$('#adv_Close').addEventListener('click', function(){ $('#settingsAdvanced').style.display = 'none'; }, false);
+		//advancedMenuCheckBox('setAnimaGifs', animaGifs, 'Animate GIF Thumbs');
+	}
+	//createAdvancedMenu();
 	
 //create settings menu
 	function createMenu(){
@@ -1409,7 +1461,7 @@
 		menuCheckBox('setQR', qrInit, 'Quick Reply');
 		
 		//create menu links like menuButtonLink('Link Text', function(){ alert('link was clicked'); });
-		//menuButtonLink('Link', function(){ alert('link was clicked'); });
+		//menuButtonLink('Advanced', function(){ if($('#settingsAdvanced').style.display == 'none'){$('#settingsAdvanced').style.display = 'block';}else{$('#settingsAdvanced').style.display = 'none';} });
 			
 		//add the "last" class to the last settings menu item
 		var $su = $$('li', $('#setUL'));
