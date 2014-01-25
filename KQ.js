@@ -1062,15 +1062,15 @@
 		$qrC['class'] = 'qrContainer postblock';
 		$qrC = $.elm('div', $qrC, db);
 		$.htm($qrC, '\
-			<div class="postblock" id="qrHandle">'+qrTitle+'</div>\
-			<span id="qrPersona" class="qrPersona">\
+			<div class="postblock" id="qrHandle"><span style="float:left;left:3px;position:absolute;color:#606060;font-family:serif;font-size:12px;font-weight:800;"><input type="checkbox" id="qrHideBox" title="Hide"></span>'+qrTitle+'<span style="float:right;right:3px;position:absolute;color:#606060;font-family:serif;font-size:12px;font-weight:800;">[ <a title="Spoiler Image" style="cursor:help;">S</a>:<input type="checkbox" id="qrSpoiler">] </span></div>\
+			<span id="qrBodyContainer"><span id="qrPersona" class="qrPersona">\
 			<input type="text" class="qrPersonaField" placeholder="Name" id="qrName" /><input type="text" class="qrPersonaField" placeholder="Email" id="qrEmail" /><input type="text" class="qrPersonaField" placeholder="Subject" id="qrSub" />\
 			</span><br>\
 			<span id="qrInp" class="qrInp">\
 			<textarea id="qrComField" class="qrComField" placeholder="Comment"></textarea>\
 			</span>\
 			<input type="file" id="qrFile" class="qrFile" multiple/><a id="qrClearFile" title="Clear Files" style="display:none;">&#10006;</a><span id="qrClearFileD" style="display:none;opacity:0.4;">&#10006;</span>\
-			<button type="button" id="qrSubmit" class="qrSubmit">Submit</button><button type="button" id="qrAbort" class="qrAbort" style="display:none;">...</button>\
+			<button type="button" id="qrSubmit" class="qrSubmit">Submit</button><button type="button" id="qrAbort" class="qrAbort" style="display:none;">...</button></span>\
 		');
 	
 		$('#postform').style.display = 'none';
@@ -1172,13 +1172,40 @@
 			}
 		}, false);
 	
+		function qrAutoMin(){
+			if($('#qrBodyContainer').style.display == "none"){
+				return $('#qrBodyContainer').style.display = "";
+			}else{
+				return $('#qrBodyContainer').style.display = "none";
+			}
+		}
+		$("#qrHideBox").addEventListener('change', function(){
+			if($('#qrHideBox').checked == true){
+				$('#qrBodyContainer').style.display = "none";
+				$.setVal('CU_qrMinimized', 'true');
+				$('#qrHandle').addEventListener('mouseover', qrAutoMin, false);
+				$('#qrContainer').addEventListener('mouseleave', qrAutoMin, false);			
+			}else{
+				$('#qrBodyContainer').style.display = "";
+				$.setVal('CU_qrMinimized', 'false');
+				$('#qrHandle').removeEventListener('mouseover', qrAutoMin, false);
+				$('#qrContainer').removeEventListener('mouseleave', qrAutoMin, false);
+			}
+		}, false);
+		if($.getVal('CU_qrMinimized') == 'true'){
+			$('#qrBodyContainer').style.display = "none";
+			$('#qrHideBox').checked = true;
+			$('#qrHandle').addEventListener('mouseover', qrAutoMin, false);
+			$('#qrContainer').addEventListener('mouseleave', qrAutoMin, false);			
+		}
+	
 		var $modForm = false;
 		
 		function modForm(){
 			$modForm = true;
 			$.htm($('#qrInp'), $.htm($('#qrInp')) + '\
 				<span id="qrModForm" style="color:#34345C;font-family:sans-serif;text-decoration:none;">\
-				<br><input type="text" id="qrModPass" style="width:297px;" placeholder="Mod Password"><br>&nbsp;Mod - \
+				<br><input type="text" id="qrModPass" style="width:297px;" placeholder="Posting Password"><br>&nbsp;Mod - \
 				<a title="Display">D</a>:<input type="checkbox" id="qrModDisplay"> / \
 				<a title="Lock">L</a>:<input type="checkbox" id="qrModLock"> / \
 				<a title="Sticky">S</a>:<input type="checkbox" id="qrModSticky"> / \
@@ -1224,6 +1251,7 @@
 						if($('#qrModName').checked == true){ formData.append("usestaffname", $('#qrModName').value); }
 
 					}
+					if($('#qrSpoiler').checked == true){ formData.append("spoiler", $('#qrSpoiler').value); }
 				var xhr = new XMLHttpRequest();
 				xhr.open("POST", "http://canterlotunderground.net/board.php");
 				
@@ -1299,7 +1327,9 @@
 								$('#qrFile').value = '';
 								dNotify('CanterlotUnderground/' + $board + '/: Post Successful');
 								if($thread == null){
-									return location.reload(); 
+									$.setVal('CU_OWNER_'+$board+'_'+xhr.responseText.split('<first post="')[1].split('"')[0], 'true'); 
+									$.event('QR_Post', { detail: { board: $board, thread: $thread, post: xhr.responseText.split('<first post="')[1].split('"')[0] } });
+									return window.location = 'http://canterlotunderground.net/'+$board+'/res/'+xhr.responseText.split('<first post="')[1].split('"')[0];
 								}else{
 									$.setVal('CU_OWNER_'+$board+'_'+xhr.responseText.split('<last post="')[1].split('"')[0], 'true');
 									winNote('Post Successful', 'green', 5);
@@ -1335,7 +1365,6 @@
 								return dNotify('CanterlotUnderground/' + $board + '/: Posting Complete.');
 							}else{
 								$('#qrComField').value = (fi+1) + '/' + $("#qrFile").files.length;
-								//qrSubmitFi(fi);
 								postingDelay(7, fi);
 							}
 						} 
