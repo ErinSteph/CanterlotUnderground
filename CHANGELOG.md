@@ -1,6 +1,8 @@
 CHANGELOG
 ====================
 
+0.0.6 - added BBcode keyboard shortcuts for the QR, added post menus, many various tweaks, fixed bug with posts that quote future posts
+
 0.0.5 - Much better handling of OP posts, added image spoilering to the QR, added minimize option to QR
 
 0.0.4 - added mod functions to the QR, fixed many features only working on /b/

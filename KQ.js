@@ -7,6 +7,7 @@
 		document.body.innerHTML = 'GET <a href="http://www.mozilla.org/en-US/firefox/new/" target="_blank">FIREFOX</a> YOU FUCKING CRETIN<br>we are not supporting your shitty microshill browser, cunt.';
 		return false;
 	}
+	
 
     var d, db, h, $, $$;
      
@@ -192,6 +193,27 @@
 				return setInterval(function(){ c(); },t);
 			}else{
 				return setTimeout(function(){ c(); },t);
+			}
+		}
+	}
+	
+	$.hasClass = function(s, c){
+		if(s.className.indexOf(c) > -1){
+			return true;
+		}else{
+			return false;
+		}
+	}
+	
+	var $CU_isMod = false;
+	if(getCookie("kumod") == "allboards"){
+		$CU_isMod = true;
+	}else if(getCookie("kumod") != ""){
+		var $modc = getCookie("kumod").split('|');
+		for(var bds in $modc){
+			if($modc[bds] == $board){
+				$CU_isMod = true;
+				break;
 			}
 		}
 	}
@@ -800,6 +822,121 @@
 			}
 		}
 	}
+	
+//a function for sending reports
+	function reportPost(p){
+		var r = prompt("Reason for reporting /"+$board+"/"+p+"?", null);
+		if(r != null && r != ""){
+			var reportData = new FormData();
+			reportData.append("board", $board);
+			reportData.append("post[]", p);
+			reportData.append("postpassword", $$('[name="postpassword"]')[1].value);
+			reportData.append("reportreason", r);
+			reportData.append("reportpost", "Report");
+			var reportxhr = new XMLHttpRequest();
+			reportxhr.open("POST", "http://canterlotunderground.net/board.php");
+			reportxhr.onreadystatechange = function(){
+				if (reportxhr.readyState == 4) {
+					if(reportxhr.responseText.indexOf('successfully') > 0){
+						return winNote("/"+$board+"/"+p+" reported.", 'green', 3);
+					}else if(reportxhr.responseText.indexOf('already') > 0){
+						return winNote("/"+$board+"/"+p+" report failed, this post is already reported.", 'orange', 3);
+					}else{
+						return winNote("/"+$board+"/"+p+" report failed.", 'red', 3);
+					}
+				}
+			}
+			reportxhr.send(reportData);
+		}else if(r == ""){
+			return winNote("/"+$board+"/"+p+" report failed, please specify a reason.", 'red', 3);
+		}else{
+			return winNote("/"+$board+"/"+p+" report aborted.", 'red', 3);
+		}
+	}
+	
+//a function for deleting posts
+	function deletePost(p){
+		var deleteData = new FormData();
+			deleteData.append("board", $board);
+			deleteData.append("post[]", p);
+			deleteData.append("postpassword", $$('[name="postpassword"]')[1].value);
+			deleteData.append("reportreason", '');
+			deleteData.append("deletepost", "Delete");
+			var deletexhr = new XMLHttpRequest();
+			deletexhr.open("POST", "http://canterlotunderground.net/board.php");
+			deletexhr.onreadystatechange = function(){
+				if (deletexhr.readyState == 4) {
+					if(deletexhr.responseText.indexOf('successfully') > 0){
+						var $cbx = $('label', $('#reply'+p)); 
+						$cbx.innerHTML = '<b style="color:orange;">[DELETED]</b>' + $cbx.innerHTML;
+						$.att($('#reply'+p), 'style', 'opacity:0.4');
+						return winNote("/"+$board+"/"+p+" deleted.", 'green', 3);
+					}else{
+						return winNote("/"+$board+"/"+p+" deletion failed.", 'red', 3);
+					}
+				}
+			}
+			deletexhr.send(deleteData);
+	
+	}
+//build posts menus 
+	function postMenuToggle(m, b){
+		var $m = $('#'+m);
+		var $b = $('#'+b);
+		if($m.style.display == "none"){
+			$.htm($('mentag', $b), '&#9650;');
+			return $m.style.display = "";
+		}else{
+			$.htm($('mentag', $b), '&#9660;');
+			return $m.style.display = "none";
+		}
+	}
+
+	function buildPostMenu(s, b, t, p){
+	
+		var $button = {};
+		$button['id'] = "postMenuButton-"+b+"-"+t+"-"+p;
+		$button['class'] = "postMenuButton";
+		$button = $.elm('span', $button, $('label', s));
+		$.htm($button, '\
+			<a title="Post Menu"><mentag>&#9660;</mentag></a>\
+		');
+		if($.getVal('CU_OWNER_'+b+'_'+p) == 'true' || $CU_isMod == true){
+			var deletelink = '[&nbsp;<a id="menuDelete'+p+'">Delete</a>&nbsp;]&nbsp';
+		}else{
+			var deletelink = '';
+		}
+	
+		var $menu = {};
+		$menu['id'] = "postMenu-"+b+"-"+t+"-"+p;
+		$menu['class'] = "postMenu";
+		$menu['style'] = "display:none;padding:2px;border:1px outset;text-align:center;";
+		$menu = $.elm('div', $menu, $('label', s));
+		$.htm($menu, '\
+			[&nbsp;<a id="menuReport'+p+'">Report</a>&nbsp;]&nbsp;\
+			'+deletelink+'\
+		');
+
+		$('#menuReport'+p).addEventListener('click', function(){ reportPost(p); postMenuToggle("postMenu-"+b+"-"+t+"-"+p, "postMenuButton-"+b+"-"+t+"-"+p); }, false);
+		if($.getVal('CU_OWNER_'+b+'_'+p) == 'true'){
+			$('#menuDelete'+p).addEventListener('click', function(){ deletePost(p); postMenuToggle("postMenu-"+b+"-"+t+"-"+p, "postMenuButton-"+b+"-"+t+"-"+p); }, false);
+		}
+		
+		$button.addEventListener('click', function(){ postMenuToggle("postMenu-"+b+"-"+t+"-"+p, "postMenuButton-"+b+"-"+t+"-"+p); }, false);	
+		
+	}
+	
+	function parseMenusPage(){
+		var $replies = $$('.reply');
+		$.each($replies, function($reply, i){
+				buildPostMenu($reply, $board, $thread, $reply.id.split('reply')[1]);
+		});
+		
+	}
+	if(window.location.href.indexOf('/res/') > 0){ 
+		parseMenusPage();
+	}
+
 
 //remove tripcodes and set all names to Anonymous	
 	function anonymizeAll(){
@@ -860,6 +997,43 @@
         }
 	}
 	
+	/*
+//get mlpchan posts for hovers
+	function hoverMlpchan(s, b, t, n){
+		if(n && n != null){
+			var xhr = new XMLHttpRequest();
+			xhr.open("GET", "http://mlpchan.net/"+b+"/res/"+t+".html");
+			xhr.onreadystatechange = function (){	
+				if (xhr.readyState == 4) {
+					var x = xhr.responseText;
+					var reply = '<div id="replyC_'+n+x.split('<div id="replyC_'+n)[1].split('</div></div></div>')[0]+'</div></div></div>';
+					return reply;
+				}
+			}
+		}else{
+			var xhr = new XMLHttpRequest();
+			xhr.open("GET", "http://mlpchan.net/"+b+"/res/"+t+".html");
+			xhr.onreadystatechange = function (){	
+				if (xhr.readyState == 4) {
+					var x = xhr.responseText;
+					var reply = '<div id="replyC_'+t+x.split('<div id="replyC_'+t)[1].split('</div></div></div>')[0]+'</div></div></div>';
+					return reply;
+				}
+			}
+		}
+	}
+	
+//parse quotes of mlpchan threads
+	function parseMlpchan(){
+		var $mq = $$('.externalMlpchan');
+		$.each($mq, function(){
+	
+		});
+	
+	}
+	*/
+	
+	
 //despoiler text spoilers
 	function despoilerTxt(){
 		$.css('.spoiler{background-color:#FFFFFF !important');
@@ -867,11 +1041,7 @@
 	
 //re-arrange file info
 	function readableFiles(){
-		var f = $$('.filesize');
-		function rLn(x){
-			return x.outerHTML;
-		}
-		$.each(f, function(a, i){
+		function parseFileInfo(a, i){
 			if($.att(a, 'parsed') != 'true'){
 				$.att(a, 'parsed', 'true');
 				var l = $$('a', a);
@@ -886,9 +1056,20 @@
 				var fLink = rLn(l[0]);
 				var fSauce = rLn(l[1]) + rLn(l[2]) + rLn(l[3]) + rLn(l[4]);
 				var newInfo = fLink + ' - (' + fSize + ', ' + fScale + ') - ' + fSauce;
-				a.innerHTML = newInfo;
+				return a.innerHTML = newInfo;
+			}else{
+				return false;
 			}
+		}
+	
+		var f = $$('.filesize');
+		function rLn(x){
+			return x.outerHTML;
+		}
+		$.each(f, function(a, i){
+				parseFileInfo(a, i);
 		});
+		//d.addEventListener('reflinkPreview', function(e){ alert(e.detail.id); }, false);	
 	}
 	d.addEventListener('extensionReady', function(){ readableFiles(); }, false);
 	
@@ -898,12 +1079,12 @@
 		for(var i = 0; i < l.length; i++){
 			if(l[i].className.split('|')[0] == 'ref' && l[i].className.split('|')[1] == $board){
 				if($.htm(l[i]).indexOf('OP') < 0 && $.htm(l[i]).indexOf('You') < 0){
-					if(l[i].className.split('|')[3] == l[i].className.split('|')[2]){
-						$.htm(l[i], $.htm(l[i])+' (OP)');
+					if(l[i].className.split('|')[3] == l[i].className.split('|')[2] && l[i].className.split('|')[2] == $thread){
+						$.htm(l[i], $.htm(l[i])+'&nbsp;(OP)');
 					}
 					if($.getVal('CU_OWNER_'+$board+'_'+l[i].className.split('|')[3]) == 'true'){
 						if(l[i].parentNode.className != "reflink"){
-							$.htm(l[i], $.htm(l[i])+' (You)');
+							$.htm(l[i], $.htm(l[i])+'&nbsp;(You)');
 						}
 					}
 				}
@@ -1198,11 +1379,8 @@
 			$('#qrHandle').addEventListener('mouseover', qrAutoMin, false);
 			$('#qrContainer').addEventListener('mouseleave', qrAutoMin, false);			
 		}
-	
-		var $modForm = false;
 		
 		function modForm(){
-			$modForm = true;
 			$.htm($('#qrInp'), $.htm($('#qrInp')) + '\
 				<span id="qrModForm" style="color:#34345C;font-family:sans-serif;text-decoration:none;">\
 				<br><input type="text" id="qrModPass" style="width:297px;" placeholder="Posting Password"><br>&nbsp;Mod - \
@@ -1214,17 +1392,36 @@
 				</span>\
 				');
 		}
-		if(getCookie("kumod") == "allboards"){
+		if($CU_isMod == true){
 			modForm();
-		}else if(getCookie("kumod") != ""){
-			var $modc = getCookie("kumod").split('|');
-			for(var bds in $modc){
-				if($modc[bds] == $board){
-					modForm();
-					break;
-				}
+		}
+	
+		function keyListener(e){
+			if(!e){
+				e = event;
+			}
+			if(e.altKey && e.ctrlKey && e.keyCode==66){ 
+				//ctrl+alt+b
+				return $.val($('#qrComField'), $('#qrComField').value+'[b][/b]');
+			}else if (e.altKey && e.ctrlKey && e.keyCode == 73){
+				//ctrl+alt+i
+				return $.val($('#qrComField'), $('#qrComField').value+'[i][/i]');
+			}else if (e.altKey && e.ctrlKey && e.keyCode == 85){
+				//ctrl+alt+u
+				return $.val($('#qrComField'), $('#qrComField').value+'[u][/u]');
+			}else if (e.altKey && e.ctrlKey && e.keyCode == 84){
+				//ctrl+alt+t
+				return $.val($('#qrComField'), $('#qrComField').value+'[s][/s]');
+			}else if (e.altKey && e.ctrlKey && e.keyCode == 83){
+				//ctrl+alt+s
+				return $.val($('#qrComField'), $('#qrComField').value+'[?][/?]');
+			}else if (e.altKey && e.ctrlKey && e.keyCode == 72){
+				//ctrl+alt+h		
+				return $.val($('#qrComField'), $('#qrComField').value+'[#][/#]');
 			}
 		}
+		$('#qrComField').onkeydown = keyListener;
+
 		
 		function qrSubmit(){
 			var fi = 0;
@@ -1242,7 +1439,7 @@
 					formData.append("message", $.val($('#qrComField')));
 					formData.append("imagefile", $("#qrFile").files[ffi]);
 					formData.append("postpassword", $.val($('[accesskey="p"]')));
-					if($modForm == true){
+					if($CU_isMod == true){
 						formData.append("modpassword", $('#qrModPass').value);
 						if($('#qrModDisplay').checked == true){ formData.append("displaystaffstatus", $('#qrModDisplay').value); }
 						if($('#qrModLock').checked == true){ formData.append("lockonpost", $('#qrModLock').value); }
@@ -1547,7 +1744,15 @@
 		$.time(500, function(){
 			fireIfSet('setHighOwn', function(){ highOwn(); });
 			readableFiles();
-			markPosts(); 	
+			markPosts();
+			if(window.location.href.indexOf('/res/') > 0){
+				$.each($$('.reply'), function(a, i){
+					var $pNo = a.id.split('reply')[1];
+					if(a.innerHTML.indexOf('postMenuButton') < 0){
+						buildPostMenu(a, $board, $thread, $pNo);
+					}
+				});
+			}
 		}, false);
 		$.time(600, function(){
 			var mentioned = false;
