@@ -1,6 +1,7 @@
  /* KQ.js - CanterlotUnderground.net javascript extension */
  /* function initX() derivative work of James Campos, everything else team-kittens, no license.*/
  
+ 
  function initKQ(){ 
 
 	if(navigator.appName == "Microsoft Internet Explorer"){
@@ -205,13 +206,41 @@
 		}
 	}
 	
+	//get some page info
+	var $board, $thread, $path, $site, $protocol;
+	$protocol = window.location.protocol;
+	$site = window.location.hostname;
+	$path = window.location.href;
+	if($path.split($site)[1].indexOf('/') > -1){
+		if($path.split($site+'/')[1].indexOf('/') > -1){
+			$board = $path.split('.net/')[1].split('/')[0];
+			if($path.split($site+'/')[1].indexOf('/res/') > -1){
+				$thread = $path.split('/res/')[1].split('.')[0];
+				if($thread.indexOf('#') > -1){
+					$thread = $thread.split('#')[0];
+				}
+			}else{
+				$thread = null;
+			}
+		}else{
+			$board = null;
+			$thread = null;
+		}
+	}else{
+		$board = null;
+		$thread = null;
+	}
+	
+	var $$ownPosts = {};
+	
+	
 	var $CU_isMod = false;
 	if(getCookie("kumod") == "allboards"){
 		$CU_isMod = true;
 	}else if(getCookie("kumod") != ""){
 		var $modc = getCookie("kumod").split('|');
-		for(var bds in $modc){
-			if($modc[bds] == $board){
+		for(var i = 0; i < $modc.length; i++){
+			if($modc[i] == $board){
 				$CU_isMod = true;
 				break;
 			}
@@ -727,27 +756,6 @@
       }
     }
 	
-//get some page info
-	var $board, $thread, $path;
-	$path = window.location.href;
-	if($path.split('.net')[1].indexOf('/') > -1){
-		if($path.split('.net/')[1].indexOf('/') > -1){
-			$board = $path.split('.net/')[1].split('/')[0];
-			if($path.split('.net/')[1].indexOf('/res/') > -1){
-				$thread = $path.split('/res/')[1].split('.')[0];
-			}else{
-				$thread = null;
-			}
-		}else{
-			$board = null;
-			$thread = null;
-		}
-	}else{
-		$board = null;
-		$thread = null;
-	}
-	
-	var $$ownPosts = {};
 
 //set default settings
 	function setsDefaults(){
@@ -834,7 +842,7 @@
 			reportData.append("reportreason", r);
 			reportData.append("reportpost", "Report");
 			var reportxhr = new XMLHttpRequest();
-			reportxhr.open("POST", "http://canterlotunderground.net/board.php");
+			reportxhr.open("POST", $protocol + '//' + $site + '/board.php');
 			reportxhr.onreadystatechange = function(){
 				if (reportxhr.readyState == 4) {
 					if(reportxhr.responseText.indexOf('successfully') > 0){
@@ -856,27 +864,32 @@
 	
 //a function for deleting posts
 	function deletePost(p){
-		var deleteData = new FormData();
-			deleteData.append("board", $board);
-			deleteData.append("post[]", p);
-			deleteData.append("postpassword", $$('[name="postpassword"]')[1].value);
-			deleteData.append("reportreason", '');
-			deleteData.append("deletepost", "Delete");
-			var deletexhr = new XMLHttpRequest();
-			deletexhr.open("POST", "http://canterlotunderground.net/board.php");
-			deletexhr.onreadystatechange = function(){
-				if (deletexhr.readyState == 4) {
-					if(deletexhr.responseText.indexOf('successfully') > 0){
-						var $cbx = $('label', $('#reply'+p)); 
-						$cbx.innerHTML = '<b style="color:orange;">[DELETED]</b>' + $cbx.innerHTML;
-						$.att($('#reply'+p), 'style', 'opacity:0.4');
-						return winNote("/"+$board+"/"+p+" deleted.", 'green', 3);
-					}else{
-						return winNote("/"+$board+"/"+p+" deletion failed.", 'red', 3);
+		var confirmed = confirm("You sure you want to delete /"+$board+"/"+p+"?");
+		if (confirmed == true){
+			var deleteData = new FormData();
+				deleteData.append("board", $board);
+				deleteData.append("post[]", p);
+				deleteData.append("postpassword", $$('[name="postpassword"]')[1].value);
+				deleteData.append("reportreason", '');
+				deleteData.append("deletepost", "Delete");
+				var deletexhr = new XMLHttpRequest();
+				deletexhr.open("POST", $protocol + '//' + $site + '/board.php');
+				deletexhr.onreadystatechange = function(){
+					if (deletexhr.readyState == 4) {
+						if(deletexhr.responseText.indexOf('successfully') > 0){
+							var $cbx = $('label', $('#reply'+p)); 
+							$cbx.innerHTML = '<b style="color:orange;">[DELETED]</b>' + $cbx.innerHTML;
+							$.att($('#reply'+p), 'style', 'opacity:0.4');
+							return winNote("/"+$board+"/"+p+" deleted.", 'green', 3);
+						}else{
+							return winNote("/"+$board+"/"+p+" deletion failed.", 'red', 3);
+						}
 					}
 				}
+				deletexhr.send(deleteData);
+			}else{
+				return winNote("/"+$board+"/"+p+" deletion aborted.", 'green', 3);
 			}
-			deletexhr.send(deleteData);
 	
 	}
 //build posts menus 
@@ -996,6 +1009,52 @@
 			}
         }
 	}
+	
+//refresh the index
+
+	function boardIndexRefresh(){
+		$refreshing = true;
+		$.htm($('#refInd'), 'Refreshing...');
+		var xhr = new XMLHttpRequest();
+		xhr.open('GET', window.location.href);
+		xhr.onreadystatechange = function(e){
+			if (this.readyState == 4 && this.status == 200){
+				var xhrbody = this.responseText.split('<body>')[1].split('/<body>')[0];
+				$.htm(db, xhrbody);
+				initKQ();
+				updateBackLinks();
+				winNote('Index Refreshed', 'green', 5);
+			}
+			if (this.readyState == 4 && this.status != 200) {
+				winNote('Index Refresh Failed', 'red', 5);
+				$.htm($('#refInd'), 'Refresh Board Index');
+			}
+		}
+		xhr.onabort = xhr.onerror = function(){
+			winNote('Index Refresh Failed', 'red', 5);
+			$.htm($('#refInd'), 'Refresh Board Index');
+		}
+		xhr.send();
+	}
+	
+//clean the catalog 
+	function cleanCatalog(){
+		var $td = $$('td');
+		for(var i = 0; i < $td.length; i++){
+			if($('a', $td[i]).title != false){
+				$('small', $td[i]).innerHTML += ' Replies - ' + $('a', $td[i]).title;
+			}else{
+				$('small', $td[i]).innerHTML += ' Replies.';
+			}
+		}
+		document.title = '/'+$board+'/ catalog';
+	
+	}
+	if(window.location.href.indexOf('catalog') > 0){
+		cleanCatalog();
+	}
+	
+	
 	
 	/*
 //get mlpchan posts for hovers
@@ -1261,6 +1320,15 @@
 		$showPost['id'] = 'showPostForm';
 		$showPost['style'] = 'showPostForm';
 		$showPost = $.htm($.elm('button', $showPost, $('#postbox')), 'Toggle Full Post Form');
+		
+		if($thread == null){
+			var $refInd = {};
+			$refInd['id'] = 'refInd';
+			$refInd['style'] = 'refInd';
+			$refInd = $.htm($.elm('button', $refInd, $('#postbox')), 'Refresh Board Index');
+			$refInd.addEventListener('click', boardIndexRefresh, false);
+		}
+	
 	
 		$showPost.addEventListener('click', function(){
 			if(isFormOpen == false){
@@ -1271,6 +1339,8 @@
 				isFormOpen = false;
 			}
 		}, false);
+	
+
 	
 		
 		$('#qrComField').addEventListener('input', function(){
@@ -1424,6 +1494,7 @@
 
 		
 		function qrSubmit(){
+			var abrted = false;
 			var fi = 0;
 			function qrSubmitFi(ffi){
 				if(ffi != 0){
@@ -1450,9 +1521,26 @@
 					}
 					if($('#qrSpoiler').checked == true){ formData.append("spoiler", $('#qrSpoiler').value); }
 				var xhr = new XMLHttpRequest();
-				xhr.open("POST", "http://canterlotunderground.net/board.php");
+				xhr.open("POST", $protocol + '//' + $site + '/board.php');
+	
+				function deact(){
+					abrted = true;
+					fi = $("#qrFile").files.length;
+					xhr.abort();
+					delete formData;
+					delete xhr;
+					$('#qrSubmit').disabled = false;
+					$('#qrComField').disabled = false;
+					$('#qrName').disabled = false;
+					$('#qrEmail').disabled = false;
+					$('#qrSub').disabled = false;
+					$('#qrFile').disabled = false;				
+					$('#qrSubmit').style.display = '';
+					$('#qrAbort').style.display = 'none';
+				}
 				
 				 function abortQR(){
+					abrted = true;
 					fi = $("#qrFile").files.length;
 					xhr.abort();
 					delete formData;
@@ -1461,7 +1549,9 @@
 					$('#qrComField').disabled = false;
 					$('#qrSubmit').style.display = '';
 					$('#qrAbort').style.display = 'none';
-					$('#qrClearFile').style.display = 'none';
+					if(fi > 0){
+						$('#qrClearFile').style.display = '';
+					}
 					$('#qrClearFileD').style.display = 'none';
 					dNotify('CanterlotUnderground/' + $board + '/: Upload Aborted');
 				}
@@ -1480,7 +1570,11 @@
 				function postingDelay(t, fi){
 					$.time(1000, function(){
 						if(t === 0){
-							return qrSubmitFi(fi);
+							if(abrted == false){
+								return qrSubmitFi(fi);
+							}else{
+								return deact();
+							}
 						}
 						$.htm($('#qrAbort'), t);
 						t = t-1;
@@ -1546,7 +1640,7 @@
 								$.event('QR_Post', { detail: { board: $board, thread: $thread, post: xhr.responseText.split('<last post="')[1].split('"')[0] } });
 								dNotify('CanterlotUnderground/' + $board + '/: Post Successful - ' + fi + '/' + $("#qrFile").files.length);
 							}
-							if(fi >= $("#qrFile").files.length){
+							if(fi >= $("#qrFile").files.length || abrted == true){
 								$('#qrSubmit').disabled = false;
 								$('#qrComField').disabled = false;
 								$('#qrFile').disabled = false;
